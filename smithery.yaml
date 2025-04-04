@@ -1,0 +1,30 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - dbUrl
+    properties:
+      dbUrl:
+        type: string
+        description: Database connection URL (e.g.,
+          mysql+pymysql://user:password@localhost/dbname)
+      transport:
+        type: string
+        default: stdio
+        description: Transport protocol to use (stdio or http)
+      envFile:
+        type: string
+        default: ""
+        description: Optional path to .env file
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => { const args = ['src/mysql/server.py', '--db-url', config.dbUrl]; if(config.transport){ args.push('--transport', config.transport); } if(config.envFile && config.envFile.trim() !== ''){ args.push('--env-file', config.envFile); } return { command: 'python', args: args, env: {} }; }
+  exampleConfig:
+    dbUrl: mysql+pymysql://root:password@localhost:3306/mydb
+    transport: stdio
+    envFile: .env
