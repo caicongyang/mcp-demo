@@ -1,5 +1,6 @@
 # MySQL MCP Server
 
+[![smithery badge](https://smithery.ai/badge/@caicongyang/mcp-demo)](https://smithery.ai/server/@caicongyang/mcp-demo)
 [English](README.md) | [中文](README_CN.md)
 
 ## Overview
@@ -43,6 +44,14 @@ The server offers five core tools:
    * Returns: Array of column definitions with names and types
 
 ## Installation
+
+### Installing via Smithery
+
+To install MySQL Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@caicongyang/mcp-demo):
+
+```bash
+npx -y @smithery/cli install @caicongyang/mcp-demo --client claude
+```
 
 ### Prerequisites
 
