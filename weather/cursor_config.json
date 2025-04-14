@@ -1,0 +1,25 @@
+{
+  "mcp_service": {
+    "name": "SimpleWeatherServer",
+    "description": "提供基本天气查询服务",
+    "version": "1.0.0",
+    "transport": "http",
+    "url": "http://localhost:8000"
+  },
+  "tools": [
+    {
+      "name": "get_weather",
+      "description": "获取指定城市的当前天气",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "城市名称，如'北京'、'上海'、'London'"
+          }
+        },
+        "required": ["location"]
+      }
+    }
+  ]
+} 

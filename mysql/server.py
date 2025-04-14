@@ -304,8 +304,13 @@ def run_server():
         
         logger.info(f"Database URL: {db_url_safe}")
         
-        # 运行服务器
-        mcp.run()
+        # 根据传输类型选择运行方式
+        if args.transport == "stdio":
+            logger.info("Starting MCP server with stdio transport")
+            mcp.run_stdio()
+        else:
+            logger.info("Starting MCP server with HTTP transport")
+            mcp.run()
     except ValueError as e:
         logger.error(f"Configuration error: {e}")
         sys.exit(1)

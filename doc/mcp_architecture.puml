@@ -1,0 +1,36 @@
+@startuml MCP Architecture
+
+' 使用简单的样式
+skinparam backgroundColor white
+skinparam defaultTextAlignment center
+
+' 定义组件
+rectangle "MCP Host\n(Claude Desktop, IDE, AI工具)" as Host
+rectangle "MCP Client" as Client
+rectangle "MCP Server\n(MySQL查询)" as Server1
+rectangle "MCP Server\n(文件系统)" as Server2
+rectangle "MCP Server\n(API服务)" as Server3
+database "本地数据源\n(MySQL数据库)" as LocalDB
+rectangle "本地文件系统" as LocalFS
+cloud "远程服务\n(外部API)" as RemoteAPI
+rectangle "LLM\n(Claude, GPT等)" as LLM
+
+' 定义关系
+Host --> Client : 使用
+Client --> Server1 : 连接
+Client --> Server2 : 连接
+Client --> Server3 : 连接
+Server1 --> LocalDB : 访问
+Server2 --> LocalFS : 访问
+Server3 --> RemoteAPI : 调用
+Host <--> LLM : 交互
+LLM ..> Client : 通过Host访问
+
+note right of Host: MCP主机是想要通过MCP访问数据的程序
+note right of Client: MCP客户端维护与服务器的连接
+note right of Server1: MCP服务器暴露特定功能
+note bottom of LocalDB: 本地数据源(如数据库)
+note bottom of RemoteAPI: 通过API访问的外部系统
+note bottom of LLM: 大型语言模型通过MCP获取上下文
+
+@enduml 

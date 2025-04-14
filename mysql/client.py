@@ -184,7 +184,7 @@ async def main():
     parser.add_argument(
         "--server-url", 
         type=str, 
-        default="http://localhost:3000", 
+        default="http://localhost:8000", 
         help="URL of the MCP server"
     )
     parser.add_argument(
