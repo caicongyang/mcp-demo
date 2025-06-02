@@ -10,6 +10,4 @@
 
 ![MCP Inspector 界面](public/image.png)
 
-*上图展示了 MCP Inspector 工具界面，可以看到天气服务工具的调用和结果展示*
-
 
