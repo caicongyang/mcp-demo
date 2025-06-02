@@ -69,7 +69,7 @@ npx -y @modelcontextprotocol/inspector
      "mcpServers": {
        "mysql-mcp": {
          "command": "python",
-         "args": ["/完整路径/server.py"]
+         "args": ["/Users/caicongyang/IdeaProjects/zxkj/mcp-demo/mysql/server.py"]
        }
        // ... 其他现有MCP服务配置 ...
      }

@@ -23,7 +23,6 @@ from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 import mcp.types as types
 import mcp.server.stdio
-from mcp.server.fastmcp import FastMCP
 
 # 配置日志记录 - 设置日志级别为 INFO，以便记录服务器的重要事件
 logging.basicConfig(level=logging.INFO)
@@ -190,74 +189,142 @@ class MySQLDatabase:
             logger.error(f"Database error executing query: {e}")
             raise
 
-# 初始化 FastMCP 服务器
-mcp = FastMCP("mysql-manager")
+# 创建 MCP 服务器实例
+server = Server("mysql-manager")
 
-# 定义工具
-@mcp.tool()
-async def read_query(query: str) -> str:
-    """执行 SELECT 查询。
-    
-    Args:
-        query: SELECT SQL 查询语句
+# 获取全局数据库实例
+db_instance = None
+
+def get_database():
+    """获取数据库实例"""
+    global db_instance
+    if db_instance is None:
+        db_url = get_db_url()
+        db_instance = MySQLDatabase(db_url)
+    return db_instance
+
+@server.list_tools()
+async def handle_list_tools() -> list[types.Tool]:
     """
-    if not query.strip().upper().startswith("SELECT"):
-        raise ValueError("Only SELECT queries are allowed for read_query")
-    
-    # 创建数据库连接
-    db = MySQLDatabase(get_db_url())
-    results = db.execute_query(query)
-    return str(results)
-
-@mcp.tool()
-async def write_query(query: str) -> str:
-    """执行 INSERT, UPDATE 或 DELETE 查询。
-    
-    Args:
-        query: SQL 修改查询语句
+    List available tools.
+    Each tool specifies its arguments using JSON Schema validation.
     """
-    if query.strip().upper().startswith("SELECT"):
-        raise ValueError("SELECT queries are not allowed for write_query")
-    
-    # 创建数据库连接
-    db = MySQLDatabase(get_db_url())
-    results = db.execute_query(query)
-    return str(results)
+    return [
+        types.Tool(
+            name="read_query",
+            description="Execute a SELECT query to read data from the database",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "SELECT SQL query to execute"
+                    }
+                },
+                "required": ["query"]
+            },
+        ),
+        types.Tool(
+            name="write_query",
+            description="Execute an INSERT, UPDATE, or DELETE query",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "SQL modification query to execute"
+                    }
+                },
+                "required": ["query"]
+            },
+        ),
+        types.Tool(
+            name="create_table",
+            description="Create a new table in the database",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "CREATE TABLE SQL statement"
+                    }
+                },
+                "required": ["query"]
+            },
+        ),
+        types.Tool(
+            name="list_tables",
+            description="List all tables in the database",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+        ),
+        types.Tool(
+            name="describe_table",
+            description="Get the structure of a specific table",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "table_name": {
+                        "type": "string",
+                        "description": "Name of the table to describe"
+                    }
+                },
+                "required": ["table_name"]
+            },
+        ),
+    ]
 
-@mcp.tool()
-async def create_table(query: str) -> str:
-    """创建新表。
-    
-    Args:
-        query: CREATE TABLE SQL 语句
+@server.call_tool()
+async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     """
-    if not query.strip().upper().startswith("CREATE TABLE"):
-        raise ValueError("Only CREATE TABLE statements are allowed")
-    
-    # 创建数据库连接
-    db = MySQLDatabase(get_db_url())
-    db.execute_query(query)
-    return "Table created successfully"
-
-@mcp.tool()
-async def list_tables() -> str:
-    """列出数据库中的所有表。"""
-    # 创建数据库连接
-    db = MySQLDatabase(get_db_url())
-    results = db.execute_query("SHOW TABLES")
-    return str(results)
-
-@mcp.tool()
-async def describe_table(table_name: str) -> str:
-    """获取指定表的结构信息。
-    
-    Args:
-        table_name: 要描述的表名
+    Handle tool execution requests.
+    Tools can modify server state and notify clients of changes.
     """
-    # 创建数据库连接
-    db = MySQLDatabase(get_db_url())
-    results = db.execute_query(f"DESCRIBE {table_name}")
-    return str(results)
+    try:
+        db = get_database()
+        
+        if name == "read_query":
+            query = arguments.get("query")
+            if not query.strip().upper().startswith("SELECT"):
+                raise ValueError("Only SELECT queries are allowed for read_query")
+            
+            results = db.execute_query(query)
+            return [types.TextContent(type="text", text=str(results))]
+        
+        elif name == "write_query":
+            query = arguments.get("query")
+            if query.strip().upper().startswith("SELECT"):
+                raise ValueError("SELECT queries are not allowed for write_query")
+            
+            results = db.execute_query(query)
+            return [types.TextContent(type="text", text=str(results))]
+        
+        elif name == "create_table":
+            query = arguments.get("query")
+            if not query.strip().upper().startswith("CREATE TABLE"):
+                raise ValueError("Only CREATE TABLE statements are allowed")
+            
+            db.execute_query(query)
+            return [types.TextContent(type="text", text="Table created successfully")]
+        
+        elif name == "list_tables":
+            results = db.execute_query("SHOW TABLES")
+            return [types.TextContent(type="text", text=str(results))]
+        
+        elif name == "describe_table":
+            table_name = arguments.get("table_name")
+            results = db.execute_query(f"DESCRIBE {table_name}")
+            return [types.TextContent(type="text", text=str(results))]
+        
+        else:
+            raise ValueError(f"Unknown tool: {name}")
+    
+    except Exception as e:
+        logger.error(f"Error executing tool {name}: {e}")
+        return [types.TextContent(type="text", text=f"Error: {str(e)}")]
 
 # 主函数
 def run_server():
@@ -307,10 +374,28 @@ def run_server():
         # 根据传输类型选择运行方式
         if args.transport == "stdio":
             logger.info("Starting MCP server with stdio transport")
-            mcp.run_stdio()
+            # 运行stdio服务器
+            async def main():
+                async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+                    await server.run(
+                        read_stream,
+                        write_stream,
+                        InitializationOptions(
+                            server_name="mysql-manager",
+                            server_version="0.1.0",
+                            capabilities=server.get_capabilities(
+                                notification_options=NotificationOptions(),
+                                experimental_capabilities={},
+                            ),
+                        ),
+                    )
+            
+            # 运行服务器
+            asyncio.run(main())
         else:
-            logger.info("Starting MCP server with HTTP transport")
-            mcp.run()
+            logger.info("Starting MCP server with HTTP transport - not implemented")
+            sys.exit(1)
+            
     except ValueError as e:
         logger.error(f"Configuration error: {e}")
         sys.exit(1)

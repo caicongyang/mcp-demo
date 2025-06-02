@@ -1,5 +1,5 @@
 import requests
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -58,4 +58,4 @@ if __name__ == "__main__":
         print("请在.env文件中添加以下内容，或设置环境变量:")
         print("OPENWEATHER_API_KEY=你的密钥")
     
-    mcp.run()  # 默认使用SSE模式 
+    mcp.run(transport="sse")  # 明确使用SSE模式 
